@@ -36,20 +36,38 @@ ORDER BY DealName;
 SELECT * FROM CompanyDeals;
 
 #Creating a view that shows #parts and dollar value with each deal
-#Drop View DealsValues;
+drop View if exists DealsValues;
 CREATE VIEW DealsValues as 
 SELECT DealID, count(PartNumber) as No_Parts, Sum(DollarValue) as Total_Dollar_Value
 FROM dealparts
 group by DealID;
 
 SELECT * FROM DealsValues
+/*
+Select distinct a.dealid , stuff((select ', ' + Typecode
+              from dealtypes
+              where a.dealid=b.dealid
+              for xml path ('')
+             ), 1, 2, '') as hobbies
+from dealtypes a
+join deals b on a.dealid=b.dealid
+where a.dealid=b.dealid;
+*/
+
+DECLARE @Names VARCHAR(8000) 
+SELECT @Names = COALESCE(@Names + ', ', '') + typecode 
+FROM dealtypes a
+join dealsvalues b on a.DealID = b.DealID 
+where a.dealid=b.dealid;
+
 
 #Creating a deals summary view
-drop view DealSummary;
+drop view if exists DealSummary;
 Create View DealSummary as 
-SELECT a.DealID,DealName, No_Parts, Total_Dollar_Value, count(PlayerID) as No_PLayers TC.TypeCode
+SELECT a.DealID,DealName, No_Parts, Total_Dollar_Value, count(PlayerID) as No_PLayers 
+,(select distinct DealID from dealtypes where a.DealID = dealtypes.DealID) as DType
 FROM Deals a 
-#WHERE DealID in ( SELECT DealID, TypeCode FROM DealTypes group by dealID )
+#WHERE DealID in ( SELECT DealID, TypeCode FROM DealTypes group by dealID,TypeCode )
 join dealsvalues b on a.DealID = b.DealID 
 join players c on a.DealID = c.DealID
 group by DealID;
@@ -57,7 +75,7 @@ group by DealID;
 SELECT * from DealSummary
 
 #Creating view that shows # deals and value for each deal type
-#drop view DealsByType;
+drop view if exists DealsByType;
 Create View DealsByType as 
 SELECT TypeCode, count(a.DealID) as No_Deals_Per_Type, sum(DollarValue) as Dollar_Value_Per_Type
 FROM dealtypes a 
@@ -67,7 +85,7 @@ group by TypeCode;
 SELECT * FROM DealsByType
 
 #Creating view that shows Company names and roles
-#drop view DealPlayers;
+drop view if exists DealPlayers;
 Create View DealPlayers as 
 SELECT Distinct a.CompanyID, b.CompanyName, a.RoleCode
 FROM Players a 
@@ -78,7 +96,7 @@ ORDER BY  c.RoleSortOrder ASC;
 SELECT * FROM DealPlayers 
 
 #Create a Summary view for firms showing # deals and value per firm
-#drop view DealsByFirm;
+drop view if exists DealsByFirm;
 Create View DealsByFirm as 
 SELECT a.FirmID, Count(C.DealID) as No_Of_Deals_Per_Firm, sum(D.DollarValue) as Dollar_Value_Per_Firm
 FROM firms a
